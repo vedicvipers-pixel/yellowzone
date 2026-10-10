@@ -1,0 +1,17 @@
+MANU PROTOCOL — YELLOW ZONE MAP REDESIGN
+
+Changed:
+- src/components/CommunityMap.tsx
+
+The map is now a more legible tactical urban district with a road network, five themed building compounds, a central exchange node, access gates, camera indicators, utility conduits, hazard accents, north marker, entry beacon, and diagnostic labels.
+
+Existing interactions preserved:
+- BuildingMarker overlays and callbacks remain unchanged.
+- Top-down / isometric toggle remains.
+- Camera, conduit, and fog toggles remain.
+- Zoom controls remain.
+- Building selection and entry continue to use the existing app state and callbacks.
+
+Notes:
+- The project source is included; generated node_modules, Git history, and old dist output are excluded from this ZIP.
+- A TypeScript build check reached a pre-existing error in src/three/rooms/index.ts (Cannot find namespace 'THREE'). The edited CommunityMap.tsx itself produced no TypeScript diagnostic in that run. Vite bundling could not be completed in this environment because npm's optional native Rolldown binding was missing after dependency installation timed out.
