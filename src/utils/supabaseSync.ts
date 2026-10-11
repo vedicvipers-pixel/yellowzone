@@ -60,9 +60,7 @@ export async function syncYellowZoneToSupabase(teamId?: string): Promise<boolean
       headers,
       body: JSON.stringify({
         team_id: resolvedTeamId,
-        dataset_key: "community_final",
-        granted_by: "zone_yellow",
-        unlocked_at: now
+        dataset_key: "community_final"
       })
     });
 
