@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CTFData, BuildingData } from '../types/protocol';
 import { sound } from '../utils/sound';
+import { verifyFlag } from '../utils/crypto';
 import { 
   X, 
   Terminal, 
@@ -97,7 +98,7 @@ export const CTFModal: React.FC<CTFModalProps> = ({
     setErrorMessage('');
   };
 
-  const handleExecuteDecryption = () => {
+  const handleExecuteDecryption = async () => {
     const hasOptions = Boolean(ctf.options && ctf.options.length > 0);
     if (hasOptions && !selectedOption) {
       setErrorMessage('Select a conclusion after reviewing the evidence.');
@@ -114,7 +115,7 @@ export const CTFModal: React.FC<CTFModalProps> = ({
 
     const isCorrect = hasOptions
       ? selectedOption === ctf.solutionKey
-      : submittedFlag.trim().toUpperCase() === ctf.flagCode.toUpperCase();
+      : await verifyFlag(ctf.id, submittedFlag, ctf.flagHash);
     if (!isCorrect) {
       sound.playTerminalBeep(false);
       setErrorMessage(hasOptions

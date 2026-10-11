@@ -149,8 +149,8 @@ export const BUILDINGS_DATA: BuildingData[] = [
           { source: 'SYSTEM TRACE D // DUPLICATE CACHE', excerpt: `CACHE_STATE=DIRTY | SOURCE_CASE=H-017\nPURGE_REQUEST=REJECTED\nNOTE=THE CACHE CANNOT BE FLUSHED WHILE THE CASE IS UNRECONCILED` },
           { source: 'RECOVERED CASE FRAGMENT', excerpt: `CASE_TAG=H-017\nPROTOCOL_ALIAS=LANTERN\nDESTINATION=WARD-09\nFIRST_CONTACT=02:17 SZT\nSERIALIZATION=CASE_PROTOCOL_WARD_TIME` }
         ],
-        solutionKey: 'H017_LANTERN_WARD09_0217', options: undefined, completed: false,
-        flagCode: 'FLAG{H017_LANTERN_WARD09_0217}',
+        solutionKey: '', options: undefined, completed: false,
+        flagHash: '9df8358abc0d19f828d800ed3adc3011401deb8c400fb53916abdb19539e0b4e',
         unlockedData: 'HOSPITAL CONTROL RESTORED: Case H-017 was routed through the LANTERN protocol to Ward 09 at 02:17. The official EMPTY status was written after the admission carrier had already registered an occupied ward. The triage controller was used to suppress the record; the evidence establishes a deliberate registry contradiction, but does not establish the patient’s ultimate fate.',
         roomPosition: [-4.2, 1.1, -2.5], roomRotation: 0.3
       }
@@ -195,8 +195,8 @@ export const BUILDINGS_DATA: BuildingData[] = [
           { source: 'ARTIFACT C // ROOM CONTROL LOG', excerpt: `SYSTEMS SESSION START=09:10\nSYSTEMS ROOM=LAB-02\nDUPLICATE ROOM OCCUPANCY=0\nDUPLICATE PERIOD OCCUPANCY=0` },
           { source: 'ARTIFACT D // ERASED MAP MARGIN', excerpt: `The public floor plan omits one room. The schedule engine stores its signature in ROOM_TIME_SESSION order.` }
         ],
-        solutionKey: 'ARCHIVE03_0840_ASTRA', options: undefined, completed: false,
-        flagCode: 'FLAG{ARCHIVE03_0840_ASTRA}',
+        solutionKey: '', options: undefined, completed: false,
+        flagHash: 'f9918f2d01420d9b9301eb04f92e51368f73b8b959183f0cea9dacd65163528d',
         unlockedData: 'ACADEMY SCHEDULE RESTORED: The unique valid arrangement places HISTORY in OBSERVATORY at 08:10, ASTRA in ARCHIVE-03 at 08:40, and SYSTEMS in LAB-02 at 09:10. Archive-03 was removed from the public floor plan because the ASTRA session accessed a suppressed Maze route index. The timetable was not a clerical error; it was the last surviving map of a room the administration denied existed.',
         roomPosition: [-3.8, 1.1, -3.2], roomRotation: 0.2
       }
@@ -254,10 +254,10 @@ The image’s visible map has no official route annotation.` }
         ],
         puzzleType: 'cipher',
         challengePrompt: 'RECOVER THE ORIGINAL ARCHIVE SIGNATURE // MANUAL FLAG ENTRY',
-        solutionKey: 'GALLERY09_ZERO_WESTGATE_0217',
+        solutionKey: '',
         options: undefined,
         completed: false,
-        flagCode: 'FLAG{GALLERY09_ZERO_WESTGATE_0217}',
+        flagHash: '9f3ec52f2fe9c5d5f764f1e4340571c0ebf4a0c59b3ac527915e44009a6832d0',
         unlockedData: 'MUSEUM ARCHIVE RESTORED: The original Gallery 09 image contained a concealed Base64 payload in the least-significant colour bits. Decoding the carrier recovered FLAG{GALLERY09_ZERO_WESTGATE_0217}. The payload links the Runner Map to Zero, the West Service Gate, and the 02:17 window. Archivist Soren Vance preserved the unmodified image after the museum’s official record was downgraded to “display only.” The same route signature appears in the Sports Complex ghost frames, confirming that the maze route was deliberately suppressed across multiple systems.',
         roomPosition: [-4.0, 1.1, -1.8],
         roomRotation: 0.4
@@ -320,10 +320,10 @@ TECH 2: Already tried. They reappear whenever the board loses sync.
         ],
         puzzleType: 'relay',
         challengePrompt: 'RECOVER THE ERASED TRANSMISSION // SUBMIT THE SIGNATURE',
-        solutionKey: 'RUNNER_ZERO_WESTGATE_0217',
+        solutionKey: '',
         options: undefined,
         completed: false,
-        flagCode: 'FLAG{RUNNER_ZERO_WESTGATE_0217}',
+        flagHash: '12c8c457e0b4a81d37ba25c576399c15d9f04de59ce57be54aa1e36022977350',
         unlockedData: 'SPORTS COMPLEX RELAY RESTORED: Base64 reconstruction recovered FLAG{RUNNER_ZERO_WESTGATE_0217}. The erased runner known as Zero transmitted the West Service Gate route during Cycle 841 at 02:17 SZT. Coach Jax had been preserving the ghost frames because the maze redraw process erased runner identities but failed to clear the scoreboard carrier buffer. A fragment of the same relay signature appears in the Society departure cluster records. Yellow Zone did not lose its route by accident; the system was suppressing runners who found it.',
         roomPosition: [-4.2, 1.1, -2.8],
         roomRotation: 0.35
@@ -396,10 +396,10 @@ ORDER=NUMERIC ASCENDING` }
         ],
         puzzleType: 'matrix',
         challengePrompt: 'Reconstruct the erased cluster. Submit its payload using the schema recovered from Fragment D.',
-        solutionKey: 'TIMELINE_MAX11_SANC0057_SANC0103_SANC0114',
+        solutionKey: '',
         options: undefined,
         completed: false,
-        flagCode: 'FLAG{TIMELINE_MAX11_SANC0057_SANC0103_SANC0114}',
+        flagHash: '1b3c0761dc5d010195d6052873e29e9df0fab8028db17d948fbe7e5d5d96677a',
         unlockedData: 'SOCIETY RESIDENTIAL TIMELINE RESTORED: The first unresolved cluster contains three doors carrying the greatest age glyph, 0B (11 in decimal): Builder SANC-0057, Analyst SANC-0103, and Medic SANC-0114. Their departure timestamps remain missing, but the recovered cache identifies the cluster to investigate next.',
         roomPosition: [-3.9, 1.1, -2.6],
         roomRotation: 0.25

@@ -12,7 +12,12 @@ import { ResidentRecordPanel } from './components/ResidentRecordPanel';
 import { SystemLogsModal } from './components/SystemLogsModal';
 import { SectorGate } from './components/SectorGate';
 import { sound } from './utils/sound';
-import { syncYellowZoneToSupabase } from './utils/supabaseSync';
+import { 
+  getResolvedTeamId, 
+  fetchYellowZoneProgress, 
+  recordYellowCtfSolve, 
+  syncYellowZoneToSupabase 
+} from './utils/supabaseSync';
 
 export function App() {
   // Protocol State
@@ -33,6 +38,62 @@ export function App() {
   const [crtEnabled, setCrtEnabled] = useState<boolean>(true);
   const [showCommunityStatus, setShowCommunityStatus] = useState<boolean>(false);
 
+  // Apply Solved Challenges to Buildings and Resident Records
+  const applySolvedChallenges = (solvedIds: string[]) => {
+    if (!solvedIds || solvedIds.length === 0) return;
+    setBuildings(prevBuildings => {
+      return prevBuildings.map(b => {
+        const updatedCtfs = b.ctfs.map(c => {
+          if (solvedIds.includes(c.id)) {
+            return { ...c, completed: true };
+          }
+          return c;
+        });
+        return { ...b, ctfs: updatedCtfs };
+      });
+    });
+
+    setResidents(prevResidents => {
+      const next = { ...prevResidents };
+      for (const b of BUILDINGS_DATA) {
+        const hasSolve = b.ctfs.some(c => solvedIds.includes(c.id));
+        if (hasSolve && b.residentId && next[b.residentId]) {
+          const res = next[b.residentId];
+          next[b.residentId] = {
+            ...res,
+            encryptedFragmentsRecovered: 1,
+            recordCompleteness: Math.min(100, res.recordCompleteness + 60),
+            status: 'NOMINAL'
+          };
+        }
+      }
+      return next;
+    });
+  };
+
+  // Hydrate solved CTFs on mount from Supabase & local cache
+  useEffect(() => {
+    const teamId = getResolvedTeamId();
+    try {
+      const cached = localStorage.getItem(`yellow_solved_${teamId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          applySolvedChallenges(parsed);
+        }
+      }
+    } catch {}
+
+    fetchYellowZoneProgress(teamId).then(({ solvedChallenges }) => {
+      if (solvedChallenges && solvedChallenges.length > 0) {
+        applySolvedChallenges(solvedChallenges);
+        try {
+          localStorage.setItem(`yellow_solved_${teamId}`, JSON.stringify(solvedChallenges));
+        } catch {}
+      }
+    });
+  }, []);
+
   // Compute Total Solved CTFs
   const totalSolved = buildings.reduce((acc, b) => {
     return acc + b.ctfs.filter(c => c.completed).length;
@@ -41,7 +102,7 @@ export function App() {
 
   // Auto-sync completion to Supabase when all CTFs are completed
   useEffect(() => {
-    if (totalSolved >= totalCtfs) {
+    if (totalSolved >= totalCtfs && totalCtfs > 0) {
       syncYellowZoneToSupabase();
     }
   }, [totalSolved, totalCtfs]);
@@ -102,6 +163,9 @@ export function App() {
     if (!foundCTF) return;
     const resolvedCTF: CTFData = { ...foundCTF, completed: true };
 
+    // Record solve and award 20 pts in Supabase & local cache
+    recordYellowCtfSolve(ctfId);
+
     // 1. Update Building CTF status
     const updatedBuildings = buildings.map(b => {
       if (b.id === activeBuilding.id) {
@@ -123,7 +187,7 @@ export function App() {
     }
 
     setActiveCTF(resolvedCTF);
-    addLog('CTF', `Decrypted terminal ${resolvedCTF.label} in ${activeBuilding.name}. Flag captured: ${resolvedCTF.flagCode}`, 'success');
+    addLog('CTF', `Decrypted terminal ${resolvedCTF.label} in ${activeBuilding.name}. Signature verified (+20 PTS).`, 'success');
 
     // 2. Restore Resident Record Data
     const residentKey = activeBuilding.residentId;

@@ -20,7 +20,8 @@ export interface CTFData {
   solutionKey: string;
   options?: string[]; // for quick interactive solve
   completed: boolean;
-  flagCode: string;
+  flagHash: string;
+  flagCode?: string;
   unlockedData: string;
   roomPosition: [number, number, number]; // [x, y, z] inside 3D entrance room
   roomRotation?: number; // rotation in radians
