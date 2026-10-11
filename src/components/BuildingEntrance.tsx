@@ -21,13 +21,15 @@ interface BuildingEntranceProps {
   onReturnToMap: () => void;
   onSelectCTF: (ctf: CTFData) => void;
   onOpenResidentDossier?: (residentId: string) => void;
+  isAllSolved?: boolean;
 }
 
 export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
   building,
   onReturnToMap,
   onSelectCTF,
-  onOpenResidentDossier
+  onOpenResidentDossier,
+  isAllSolved
 }) => {
   // Allow toggling between 3D FPP Walkthrough and 2D Tactical View
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
@@ -273,6 +275,44 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {/* Society completion fragment and Blue Zone transition banner */}
+                {building.id === 'society' && activeCtf?.completed && (
+                  <div className="mt-4 p-4 rounded-lg border-2 border-emerald-500/70 bg-emerald-950/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_25px_rgba(16,185,129,0.25)]">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="font-tech font-bold text-xs text-emerald-300 tracking-wider">
+                          COMMUNITY DATASET READY // community_final.csv
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-300 font-mono-code mt-0.5">
+                        Society identity archive recovered. 20-column community fragment unlocked for download.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <a
+                        href="/community_final.csv"
+                        download="community_final.csv"
+                        className="px-3.5 py-2 rounded bg-emerald-400 hover:bg-emerald-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] flex items-center gap-1.5 cursor-pointer"
+                        id="entrance-download-community-final"
+                      >
+                        <span>DOWNLOAD community_final.csv ⤓</span>
+                      </a>
+                      {isAllSolved && (
+                        <a
+                          href="https://yellow-to-blue-slideshow.vercel.app/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center gap-1.5 cursor-pointer"
+                          id="entrance-move-to-blue-zone"
+                        >
+                          <span>MOVE TO BLUE ZONE →</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* The Two Clearly Identifiable CTF Interaction Points */}

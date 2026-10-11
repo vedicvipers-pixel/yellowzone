@@ -257,15 +257,25 @@ export const ResidentRecordPanel: React.FC<ResidentRecordPanelProps> = ({
           <span className="text-[11px] text-zinc-500">
             SOLVE CTF TERMINALS IN RELATED COMMUNITY BUILDINGS TO RESTORE CITIZEN DOSSIERS
           </span>
-          <button
-            onClick={() => {
-              sound.playClick();
-              onClose();
-            }}
-            className="px-4 py-1.5 rounded bg-yellow-500 hover:bg-yellow-400 text-black font-tech font-bold text-xs cursor-pointer"
-          >
-            CLOSE ARCHIVE
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/community_final.csv"
+              download="community_final.csv"
+              className="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-tech font-bold text-xs cursor-pointer flex items-center gap-1 transition-colors"
+              title="Download community_final.csv fragment"
+            >
+              <span>community_final.csv ⤓</span>
+            </a>
+            <button
+              onClick={() => {
+                sound.playClick();
+                onClose();
+              }}
+              className="px-4 py-1.5 rounded bg-yellow-500 hover:bg-yellow-400 text-black font-tech font-bold text-xs cursor-pointer"
+            >
+              CLOSE ARCHIVE
+            </button>
+          </div>
         </div>
       </div>
     </div>

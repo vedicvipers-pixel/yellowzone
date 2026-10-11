@@ -11,7 +11,9 @@ import {
   Sparkles,
   Database,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 
 interface CTFModalProps {
@@ -19,13 +21,15 @@ interface CTFModalProps {
   building: BuildingData;
   onClose: () => void;
   onSolve: (ctfId: string) => void;
+  isAllSolved?: boolean;
 }
 
 export const CTFModal: React.FC<CTFModalProps> = ({
   ctf,
   building,
   onClose,
-  onSolve
+  onSolve,
+  isAllSolved
 }) => {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [submittedFlag, setSubmittedFlag] = useState<string>('');
@@ -235,6 +239,7 @@ export const CTFModal: React.FC<CTFModalProps> = ({
 
           {/* If already completed: show decrypted data & flag */}
           {ctf.completed ? (
+            <>
             <div className="bg-emerald-950/20 border border-emerald-500/40 p-4 rounded-lg space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-emerald-400 font-tech font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -255,6 +260,78 @@ export const CTFModal: React.FC<CTFModalProps> = ({
                 </code>
               </div>
             </div>
+
+            {/* Society / Living Area completion awards community_final.csv */}
+            {(building.id === 'society' || ctf.id === 'CTF-SOC-01') && (
+              <div className="rounded-lg border-2 border-emerald-500/60 bg-emerald-950/40 p-4 space-y-3 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Database size={16} className="text-emerald-400" />
+                    <span className="font-tech font-bold text-sm text-emerald-300 tracking-wider">
+                      DATASET FRAGMENT RECOVERED // community_final.csv
+                    </span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono-code font-bold">
+                    20 COLUMNS · VERIFIED
+                  </span>
+                </div>
+                <p className="text-zinc-200 text-xs font-mono-code leading-relaxed">
+                  Society / Living Area records restored. The unredacted test set fragment for Yellow Zone has been decrypted and prepared for download.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <a
+                    href="/community_final.csv"
+                    download="community_final.csv"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded bg-emerald-400 hover:bg-emerald-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(52,211,153,0.5)] cursor-pointer"
+                    id="modal-download-community-final"
+                  >
+                    <Download size={15} />
+                    <span>DOWNLOAD community_final.csv ⤓</span>
+                  </a>
+
+                  {isAllSolved && (
+                    <a
+                      href="https://yellow-to-blue-slideshow.vercel.app/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.5)] cursor-pointer"
+                      id="modal-move-to-blue-zone"
+                    >
+                      <ArrowRight size={15} />
+                      <span>MOVE TO BLUE ZONE →</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isAllSolved && building.id !== 'society' && (
+              <div className="rounded-lg border border-cyan-500/50 bg-cyan-950/30 p-3.5 space-y-2">
+                <div className="flex items-center gap-2 text-cyan-300 font-tech font-bold text-xs tracking-wider">
+                  <ArrowRight size={14} />
+                  <span>ALL 5 CTFS SOLVED // BLUE ZONE TRANSITION UNLOCKED</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href="/community_final.csv"
+                    download="community_final.csv"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-tech font-bold text-xs cursor-pointer"
+                  >
+                    <Download size={13} />
+                    <span>community_final.csv ⤓</span>
+                  </a>
+                  <a
+                    href="https://yellow-to-blue-slideshow.vercel.app/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs cursor-pointer"
+                  >
+                    <span>MOVE TO BLUE ZONE →</span>
+                  </a>
+                </div>
+              </div>
+            )}
+            </>
           ) : (
             /* Interactive Challenge / Decryption Options */
             <div className="space-y-3">

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Activity, CheckCircle2, Database } from 'lucide-react';
 import { BUILDINGS_DATA, INITIAL_RESIDENTS, INITIAL_SYSTEM_LOGS } from './data/protocolData';
 import { BuildingData, CTFData, ResidentRecord, LogEntry, BuildingId } from './types/protocol';
 import { SystemHeader } from './components/SystemHeader';
@@ -12,6 +12,7 @@ import { ResidentRecordPanel } from './components/ResidentRecordPanel';
 import { SystemLogsModal } from './components/SystemLogsModal';
 import { SectorGate } from './components/SectorGate';
 import { sound } from './utils/sound';
+import { syncYellowZoneToSupabase } from './utils/supabaseSync';
 
 export function App() {
   // Protocol State
@@ -37,6 +38,13 @@ export function App() {
     return acc + b.ctfs.filter(c => c.completed).length;
   }, 0);
   const totalCtfs = buildings.length;
+
+  // Auto-sync completion to Supabase when all CTFs are completed
+  useEffect(() => {
+    if (totalSolved >= totalCtfs) {
+      syncYellowZoneToSupabase();
+    }
+  }, [totalSolved, totalCtfs]);
 
   // Add Log Helper
   const addLog = (category: LogEntry['category'], message: string, level: LogEntry['level'] = 'info') => {
@@ -139,6 +147,12 @@ export function App() {
       });
 
       addLog('BIOMETRIC', `Restored memory fragment for resident ${residents[residentKey].fullName} (${residentKey}). Record completeness +60%.`, 'success');
+    }
+
+    // 3. Sync to Supabase if Society CTF solved or all 5 solved
+    const solvedCountNow = updatedBuildings.reduce((acc, b) => acc + b.ctfs.filter(c => c.completed).length, 0);
+    if (solvedCountNow >= updatedBuildings.length || activeBuilding.id === 'society') {
+      syncYellowZoneToSupabase();
     }
   };
 
@@ -253,6 +267,48 @@ export function App() {
                   onOpenResidentDossier={handleOpenResidentDossier}
                 />
               )}
+
+              {/* Sector Cleared Floating Tactical Banner */}
+              {totalSolved >= totalCtfs && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 max-w-2xl w-[94%] bg-[#0c121c]/95 border-2 border-emerald-500 rounded-lg p-3.5 shadow-[0_0_35px_rgba(16,185,129,0.35)] backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono-code">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded bg-emerald-500/20 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shrink-0">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div>
+                        <div className="font-tech font-bold text-xs sm:text-sm text-emerald-400 tracking-wider flex items-center gap-2">
+                          <span>YELLOW ZONE FULLY RESTORED</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">5 / 5 SOLVED</span>
+                        </div>
+                        <div className="text-[11px] text-zinc-300 mt-0.5">
+                          Community dataset fragment unlocked. Blue Zone transit corridor available.
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
+                      <a
+                        href="/community_final.csv"
+                        download="community_final.csv"
+                        className="flex-1 sm:flex-none px-3.5 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] flex items-center justify-center gap-1.5 cursor-pointer"
+                        id="map-download-community-final"
+                      >
+                        <Database size={13} />
+                        <span>DOWNLOAD community_final.csv ⤓</span>
+                      </a>
+                      <a
+                        href="https://yellow-to-blue-slideshow.vercel.app/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 sm:flex-none px-4 py-2 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center justify-center gap-1.5 cursor-pointer animate-pulse"
+                        id="map-move-to-blue-zone"
+                      >
+                        <span>MOVE TO BLUE ZONE →</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -263,6 +319,7 @@ export function App() {
               onReturnToMap={handleReturnToMap}
               onSelectCTF={(ctf) => setActiveCTF(ctf)}
               onOpenResidentDossier={handleOpenResidentDossier}
+              isAllSolved={totalSolved >= totalCtfs}
             />
           )
         )}
@@ -275,6 +332,7 @@ export function App() {
           building={activeBuilding}
           onClose={() => setActiveCTF(null)}
           onSolve={handleSolveCTF}
+          isAllSolved={totalSolved >= totalCtfs}
         />
       )}
 

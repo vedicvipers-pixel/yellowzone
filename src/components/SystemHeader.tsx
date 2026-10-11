@@ -9,7 +9,9 @@ import {
   Tv, 
   Activity,
   Layers,
-  HelpCircle
+  HelpCircle,
+  Download,
+  ArrowRight
 } from 'lucide-react';
 import { sound } from '../utils/sound';
 
@@ -156,6 +158,34 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
 
         {/* Right: Interactive Tactical Utilities */}
         <div className="flex items-center gap-2">
+          {totalSolved >= totalCtfs && (
+            <>
+              <a
+                href="/community_final.csv"
+                download="community_final.csv"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-emerald-500/70 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_12px_rgba(16,185,129,0.3)] cursor-pointer"
+                title="Download community_final.csv fragment"
+                id="header-download-community-final"
+              >
+                <Download size={13} className="text-emerald-400" />
+                <span className="hidden md:inline">community_final.csv</span>
+                <span>⤓</span>
+              </a>
+
+              <a
+                href="https://yellow-to-blue-slideshow.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer animate-pulse"
+                title="Proceed to Blue Zone Transition Storyline"
+                id="header-move-to-blue-zone"
+              >
+                <span>MOVE TO BLUE ZONE</span>
+                <ArrowRight size={13} />
+              </a>
+            </>
+          )}
+
           {/* Recovered Resident Dossiers Button */}
           <button
             onClick={() => { sound.playClick(); onOpenResidents(); }}
