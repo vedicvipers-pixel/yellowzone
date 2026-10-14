@@ -6,17 +6,22 @@ const SERVICE_TOKEN = "the-last-dataset-2026-production-service-token-manipal";
 export function getResolvedTeamId(): string {
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    const param = urlParams.get("team");
+    const param = urlParams.get("team") || urlParams.get("teamId");
     if (param) {
       const clean = param.trim().toUpperCase();
       sessionStorage.setItem("manu_team_id", clean);
       localStorage.setItem("manu_team_id", clean);
       return clean;
     }
-    const session = sessionStorage.getItem("manu_team_id") || sessionStorage.getItem("manu-team-id");
-    if (session) return session.trim().toUpperCase();
-    const local = localStorage.getItem("manu_team_id") || localStorage.getItem("manu-team-id");
-    if (local) return local.trim().toUpperCase();
+    const session = (sessionStorage.getItem("manu_team_id") || sessionStorage.getItem("manu-team-id") || "").trim().toUpperCase();
+    if (session && session !== "TECHTEAM10328") return session;
+    const local = (localStorage.getItem("manu_team_id") || localStorage.getItem("manu-team-id") || "").trim().toUpperCase();
+    if (local && local !== "TECHTEAM10328") return local;
+    // Purge any lingering stale test storage
+    sessionStorage.removeItem("manu_team_id");
+    sessionStorage.removeItem("manu-team-id");
+    localStorage.removeItem("manu_team_id");
+    localStorage.removeItem("manu-team-id");
   } catch {
     // browser sandbox
   }
