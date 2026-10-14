@@ -20,7 +20,21 @@ export function getResolvedTeamId(): string {
   } catch {
     // browser sandbox
   }
-  return "TECHTEAM10328";
+  return "";
+}
+
+export function clearYellowZoneLocalSolved(teamId?: string): void {
+  try {
+    localStorage.removeItem("manu-yellow-investigation-solved-v1");
+    localStorage.removeItem("manu_solved");
+    localStorage.removeItem("manu-yellow-investigation-saved-v1");
+    if (teamId) {
+      localStorage.removeItem(`yellow_solved_${teamId}`);
+      localStorage.removeItem(`manu-yellow-investigation-solved-v1_${teamId}`);
+      localStorage.removeItem(`manu-yellow-investigation-saved-v1_${teamId}`);
+      localStorage.removeItem(`manu_yellow_solved_${teamId}`);
+    }
+  } catch {}
 }
 
 export function getBlueZoneTransitionUrl(): string {
@@ -30,6 +44,10 @@ export function getBlueZoneTransitionUrl(): string {
 
 export async function fetchYellowZoneProgress(teamId?: string): Promise<{ isCompleted: boolean; solvedChallenges: string[]; status: string }> {
   const resolved = teamId || getResolvedTeamId();
+  if (!resolved) {
+    clearYellowZoneLocalSolved();
+    return { isCompleted: false, solvedChallenges: [], status: "available" };
+  }
   try {
     const res = await fetch(`${CENTRAL_HUB_URL}/api/integrations/team-state?teamId=${encodeURIComponent(resolved)}`, {
       method: "GET",
@@ -37,7 +55,10 @@ export async function fetchYellowZoneProgress(teamId?: string): Promise<{ isComp
         "Accept": "application/json"
       }
     });
-    if (!res.ok) return { isCompleted: false, solvedChallenges: [], status: "available" };
+    if (!res.ok) {
+      clearYellowZoneLocalSolved(resolved);
+      return { isCompleted: false, solvedChallenges: [], status: "available" };
+    }
     const data = await res.json();
     if (data && data.bootstrap) {
       const solved = Array.isArray(data.bootstrap.solvedChallenges) ? data.bootstrap.solvedChallenges : [];
@@ -45,6 +66,9 @@ export async function fetchYellowZoneProgress(teamId?: string): Promise<{ isComp
       const yellowZone = zones.find((z: any) => z.id === "yellow") || (data.bootstrap.zones && data.bootstrap.zones.yellow);
       const status = yellowZone?.status || yellowZone?.state || "available";
       const isCompleted = status === "completed" || status === "cleared" || solved.includes("yellow-01");
+      if (!isCompleted) {
+        clearYellowZoneLocalSolved(resolved);
+      }
       return {
         isCompleted,
         solvedChallenges: solved,
@@ -54,6 +78,7 @@ export async function fetchYellowZoneProgress(teamId?: string): Promise<{ isComp
   } catch (err) {
     console.warn("Could not fetch Yellow Zone progress:", err);
   }
+  clearYellowZoneLocalSolved(resolved);
   return { isCompleted: false, solvedChallenges: [], status: "available" };
 }
 
@@ -87,9 +112,11 @@ export async function recordYellowCtfSolve(ctfId: string = "yellow-01", teamId?:
     if (isOk) {
       // Save to localStorage as instant offline cache
       try {
-        localStorage.setItem(`yellow_solved_${resolved}`, JSON.stringify([ctfId, "yellow-01"]));
-        localStorage.setItem("manu-yellow-investigation-solved-v1", "true");
-        localStorage.setItem("manu_solved", "true");
+        if (resolved) {
+          localStorage.setItem(`yellow_solved_${resolved}`, JSON.stringify([ctfId, "yellow-01"]));
+          localStorage.setItem(`manu_yellow_solved_${resolved}`, "true");
+          localStorage.setItem(`manu-yellow-investigation-solved-v1_${resolved}`, "true");
+        }
       } catch {
         // ignore
       }

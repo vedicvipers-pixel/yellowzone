@@ -1,26 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Activity, CheckCircle2, Database } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 import { BUILDINGS_DATA, INITIAL_RESIDENTS, INITIAL_SYSTEM_LOGS } from './data/protocolData';
-import { BuildingData, CTFData, ResidentRecord, LogEntry, BuildingId } from './types/protocol';
+import { BuildingData, ResidentRecord, LogEntry, BuildingId } from './types/protocol';
 import { SystemHeader } from './components/SystemHeader';
 import { CommunityMap } from './components/CommunityMap';
 import { BuildingPanel } from './components/BuildingPanel';
 import { BuildingEntrance } from './components/BuildingEntrance';
 import { CommunityProgress } from './components/CommunityProgress';
-import { CTFModal } from './components/CTFModal';
+import { InvestigationTerminal } from './components/InvestigationTerminal';
+import { MainFlagSubmissionStrip, MainInvestigationPanel, type FlagResult } from './components/MainInvestigationPanel';
 import { ResidentRecordPanel } from './components/ResidentRecordPanel';
 import { SystemLogsModal } from './components/SystemLogsModal';
 import { SectorGate } from './components/SectorGate';
 import { sound } from './utils/sound';
-import { 
-  getResolvedTeamId, 
-  fetchYellowZoneProgress, 
-  recordYellowCtfSolve, 
-  syncYellowZoneToSupabase,
-  getBlueZoneTransitionUrl
-} from './utils/supabaseSync';
+import { STORAGE_KEYS } from './data/investigationData';
+import { getResolvedTeamId, fetchYellowZoneProgress, clearYellowZoneLocalSolved } from './utils/supabaseSync';
 
 export function App() {
+  const teamId = getResolvedTeamId();
+  const [isSolved, setIsSolved] = useState<boolean>(() => {
+    if (!teamId) return false;
+    try {
+      return window.localStorage.getItem(`yellow_solved_${teamId}`) !== null ||
+             window.localStorage.getItem(`${STORAGE_KEYS.solved}_${teamId}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   // Protocol State
   const [buildings, setBuildings] = useState<BuildingData[]>(BUILDINGS_DATA);
   const [residents, setResidents] = useState<Record<string, ResidentRecord>>(INITIAL_RESIDENTS);
@@ -32,93 +39,64 @@ export function App() {
   const [activeBuilding, setActiveBuilding] = useState<BuildingData | null>(null);
 
   // Modals & Panels
-  const [activeCTF, setActiveCTF] = useState<CTFData | null>(null);
+  const [showInvestigationTerminal, setShowInvestigationTerminal] = useState(false);
   const [showResidentsModal, setShowResidentsModal] = useState<boolean>(false);
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null);
   const [showLogsModal, setShowLogsModal] = useState<boolean>(false);
   const [crtEnabled, setCrtEnabled] = useState<boolean>(true);
   const [showCommunityStatus, setShowCommunityStatus] = useState<boolean>(false);
-  const [lockedPrereq, setLockedPrereq] = useState<string | null>(null);
+  const [zoneFeedback, setZoneFeedback] = useState<FlagResult | null>(null);
 
-  // Apply Solved Challenges to Buildings and Resident Records
-  const applySolvedChallenges = (solvedIds: string[]) => {
-    if (!solvedIds || solvedIds.length === 0) return;
-    setBuildings(prevBuildings => {
-      return prevBuildings.map(b => {
-        const updatedCtfs = b.ctfs.map(c => {
-          if (solvedIds.includes(c.id)) {
-            return { ...c, completed: true };
-          }
-          return c;
-        });
-        return { ...b, ctfs: updatedCtfs };
-      });
-    });
-
-    setResidents(prevResidents => {
-      const next = { ...prevResidents };
-      for (const b of BUILDINGS_DATA) {
-        const hasSolve = b.ctfs.some(c => solvedIds.includes(c.id));
-        if (hasSolve && b.residentId && next[b.residentId]) {
-          const res = next[b.residentId];
-          next[b.residentId] = {
-            ...res,
-            encryptedFragmentsRecovered: 1,
-            recordCompleteness: Math.min(100, res.recordCompleteness + 60),
-            status: 'NOMINAL'
-          };
-        }
+  useEffect(() => {
+    const checkSolved = () => {
+      const currentTeam = getResolvedTeamId();
+      if (!currentTeam) {
+        setIsSolved(false);
+        return;
       }
-      return next;
-    });
+      try {
+        const solved = window.localStorage.getItem(`yellow_solved_${currentTeam}`) !== null ||
+                       window.localStorage.getItem(`${STORAGE_KEYS.solved}_${currentTeam}`) === 'true';
+        setIsSolved(solved);
+      } catch {
+        setIsSolved(false);
+      }
+    };
+    checkSolved();
+
+    if (teamId) {
+      fetchYellowZoneProgress(teamId).then((res) => {
+        if (!res.isCompleted) {
+          clearYellowZoneLocalSolved(teamId);
+          setIsSolved(false);
+        } else {
+          setIsSolved(true);
+        }
+      });
+    }
+
+    window.addEventListener('manu-ledger-state-change', checkSolved);
+    window.addEventListener('storage', checkSolved);
+    return () => {
+      window.removeEventListener('manu-ledger-state-change', checkSolved);
+      window.removeEventListener('storage', checkSolved);
+    };
+  }, [teamId]);
+
+  useEffect(() => {
+    if (!zoneFeedback) return;
+    const timer = window.setTimeout(() => setZoneFeedback(null), zoneFeedback === 'wrong' ? 950 : 1250);
+    return () => window.clearTimeout(timer);
+  }, [zoneFeedback]);
+
+  const handleFlagResult = (result: FlagResult) => {
+    setZoneFeedback(null);
+    window.requestAnimationFrame(() => setZoneFeedback(result));
   };
 
-  // Hydrate solved CTFs on mount from Supabase & local cache
-  useEffect(() => {
-    const teamId = getResolvedTeamId();
-    if (teamId) {
-      fetch(`https://last-dataset.vercel.app/api/zone/status?zoneId=yellow&team=${encodeURIComponent(teamId)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.unlocked === false) {
-            setLockedPrereq(data.prerequisite || 'sanctuary');
-          }
-        })
-        .catch(() => {});
-    }
-
-    try {
-      const cached = localStorage.getItem(`yellow_solved_${teamId}`);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          applySolvedChallenges(parsed);
-        }
-      }
-    } catch {}
-
-    fetchYellowZoneProgress(teamId).then(({ solvedChallenges }) => {
-      if (solvedChallenges && solvedChallenges.length > 0) {
-        applySolvedChallenges(solvedChallenges);
-        try {
-          localStorage.setItem(`yellow_solved_${teamId}`, JSON.stringify(solvedChallenges));
-        } catch {}
-      }
-    });
-  }, []);
-
-  // Compute Total Solved CTFs
-  const totalSolved = buildings.reduce((acc, b) => {
-    return acc + b.ctfs.filter(c => c.completed).length;
-  }, 0);
+  // Progress is intentionally not tied to the retired standalone CTF flow.
+  const totalSolved = 0;
   const totalCtfs = buildings.length;
-
-  // Auto-sync completion to Supabase when all CTFs are completed
-  useEffect(() => {
-    if (totalSolved >= totalCtfs && totalCtfs > 0) {
-      syncYellowZoneToSupabase();
-    }
-  }, [totalSolved, totalCtfs]);
 
   // Add Log Helper
   const addLog = (category: LogEntry['category'], message: string, level: LogEntry['level'] = 'info') => {
@@ -168,71 +146,6 @@ export function App() {
     setActiveBuilding(null);
   };
 
-  // Solve a CTF terminal
-  const handleSolveCTF = (ctfId: string) => {
-    if (!activeBuilding) return;
-
-    const foundCTF = activeBuilding.ctfs.find(c => c.id === ctfId);
-    if (!foundCTF) return;
-    const resolvedCTF: CTFData = { ...foundCTF, completed: true };
-
-    // Record solve and award 20 pts in Supabase & local cache
-    recordYellowCtfSolve(ctfId);
-
-    // 1. Update Building CTF status
-    const updatedBuildings = buildings.map(b => {
-      if (b.id === activeBuilding.id) {
-        const updatedCtfs = b.ctfs.map(c => {
-          if (c.id === ctfId) {
-            return resolvedCTF;
-          }
-          return c;
-        });
-        return { ...b, ctfs: updatedCtfs };
-      }
-      return b;
-    });
-
-    setBuildings(updatedBuildings);
-    const updatedActiveBuilding = updatedBuildings.find(b => b.id === activeBuilding.id);
-    if (updatedActiveBuilding) {
-      setActiveBuilding(updatedActiveBuilding);
-    }
-
-    setActiveCTF(resolvedCTF);
-    addLog('CTF', `Decrypted terminal ${resolvedCTF.label} in ${activeBuilding.name}. Signature verified (+20 PTS).`, 'success');
-
-    // 2. Restore Resident Record Data
-    const residentKey = activeBuilding.residentId;
-    if (residentKey && residents[residentKey]) {
-      setResidents(prev => {
-        const currentRes = prev[residentKey];
-        const newRecoveredCount = Math.min(1, currentRes.encryptedFragmentsRecovered + 1);
-        const newCompleteness = Math.min(100, currentRes.recordCompleteness + 60);
-        const newStatus = newCompleteness >= 90 ? 'NOMINAL' : currentRes.status;
-
-        return {
-          ...prev,
-          [residentKey]: {
-            ...currentRes,
-            encryptedFragmentsRecovered: newRecoveredCount,
-            recordCompleteness: newCompleteness,
-            status: newStatus,
-            lastUpdate: `Cycle 841.04 // Restored by MANU Agent`
-          }
-        };
-      });
-
-      addLog('BIOMETRIC', `Restored memory fragment for resident ${residents[residentKey].fullName} (${residentKey}). Record completeness +60%.`, 'success');
-    }
-
-    // 3. Sync to Supabase if Society CTF solved or all 5 solved
-    const solvedCountNow = updatedBuildings.reduce((acc, b) => acc + b.ctfs.filter(c => c.completed).length, 0);
-    if (solvedCountNow >= updatedBuildings.length || activeBuilding.id === 'society') {
-      syncYellowZoneToSupabase();
-    }
-  };
-
   // Quick jump from CommunityProgress widget
   const handleSelectBuildingFromTracker = (id: BuildingId) => {
     const b = buildings.find(item => item.id === id);
@@ -254,46 +167,32 @@ export function App() {
     setShowResidentsModal(true);
   };
 
-  // Reset entire prototype state
+  // Reset investigation prototype state
   const handleResetPrototype = () => {
     sound.playClick();
-    if (window.confirm('Reset all recovered CTFs and restore initial corrupted state?')) {
+    if (window.confirm('Reset the investigation prototype and restore its initial state?')) {
       setBuildings(BUILDINGS_DATA);
       setResidents(INITIAL_RESIDENTS);
       setLogs(INITIAL_SYSTEM_LOGS);
       setActiveView('map');
       setSelectedBuilding(null);
       setActiveBuilding(null);
-      setActiveCTF(null);
+      setShowInvestigationTerminal(false);
+      try {
+        window.localStorage.removeItem(STORAGE_KEYS.saved);
+        window.localStorage.removeItem(STORAGE_KEYS.solved);
+      } catch { /* Storage is optional; the visible prototype still resets. */ }
+      window.dispatchEvent(new Event('manu-ledger-state-change'));
       addLog('SYSTEM', 'Prototype state purged. Identity scrub initialized to baseline.', 'warn');
     }
   };
-
-  if (lockedPrereq) {
-    const teamId = getResolvedTeamId();
-    return (
-      <div className="fixed inset-0 z-50 bg-[#07090e] flex flex-col items-center justify-center p-6 text-center font-mono-code text-red-400">
-        <div className="text-4xl mb-4 font-display">⬡ ACCESS DENIED</div>
-        <div className="text-xl font-bold text-white mb-2 tracking-wider">SECTOR YELLOW IS CURRENTLY LOCKED</div>
-        <p className="text-zinc-400 max-w-md mb-8 text-sm leading-relaxed">
-          Prerequisite sector <span className="text-amber-400 font-bold uppercase">{lockedPrereq}</span> must be cleared by your team before entering Sector Yellow.
-        </p>
-        <a
-          href={`https://last-dataset.vercel.app/?team=${encodeURIComponent(teamId)}`}
-          className="px-6 py-3 rounded bg-amber-500 hover:bg-amber-400 text-black font-bold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)]"
-        >
-          RETURN TO CENTRAL COMMAND MAP
-        </a>
-      </div>
-    );
-  }
 
   return (
     <div className={`relative w-screen h-screen overflow-hidden flex flex-col bg-[#07090e] text-[#e2e8f0] ${crtEnabled ? 'crt-overlay' : ''}`}>
       {/* Universal In-World MANU Protocol Header */}
       <SystemHeader
-        totalSolved={totalSolved}
-        totalCtfs={totalCtfs}
+        totalSolved={isSolved ? 1 : 0}
+        totalCtfs={1}
         onOpenResidents={() => setShowResidentsModal(true)}
         onOpenLogs={() => setShowLogsModal(true)}
         onReset={handleResetPrototype}
@@ -302,6 +201,8 @@ export function App() {
         activeBuildingName={activeBuilding ? activeBuilding.name : undefined}
         onReturnToMap={activeView === 'building' ? handleReturnToMap : undefined}
         onReturnToGate={activeView !== 'gate' ? handleReturnToGate : undefined}
+        teamId={teamId}
+        isSolved={isSolved}
       />
 
       {/* Main View Area */}
@@ -310,18 +211,22 @@ export function App() {
           /* Sector Perimeter Decontamination Gate */
           <SectorGate onBreachGate={handleBreachGate} />
         ) : activeView === 'map' ? (
-          <>
-            {/* Top-Down Interactive Community Map */}
-            <div className="relative flex-1 h-full overflow-hidden flex">
+          <div className={`map-zone-shell relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${zoneFeedback === 'wrong' ? 'map-zone-feedback-wrong' : zoneFeedback === 'correct' ? 'map-zone-feedback-correct' : ''}`}>
+            {/* Map and story dossier stay in the upper row; the wide recovery strip sits beneath them. */}
+            <div className="relative flex min-h-0 flex-1 overflow-hidden">
               <CommunityMap
                 buildings={buildings}
                 selectedBuilding={selectedBuilding}
                 onSelectBuilding={setSelectedBuilding}
                 onEnterBuilding={handleEnterBuilding}
               />
+              <MainInvestigationPanel
+                buildings={buildings}
+                onSelectBuilding={setSelectedBuilding}
+              />
 
               {/* Toggleable Community Status panel. Collapsed by default so the map stays visible. */}
-              <div className="absolute bottom-12 left-4 z-30 hidden md:block pointer-events-none">
+              <div className="absolute bottom-4 left-4 z-30 hidden md:block pointer-events-none">
                 {showCommunityStatus ? (
                   <div className="relative pointer-events-auto animate-in fade-in slide-in-from-left-2 duration-200">
                     <button
@@ -363,72 +268,27 @@ export function App() {
                   onOpenResidentDossier={handleOpenResidentDossier}
                 />
               )}
-
-              {/* Sector Cleared Floating Tactical Banner */}
-              {totalSolved >= totalCtfs && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 max-w-2xl w-[94%] bg-[#0c121c]/95 border-2 border-emerald-500 rounded-lg p-3.5 shadow-[0_0_35px_rgba(16,185,129,0.35)] backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono-code">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded bg-emerald-500/20 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shrink-0">
-                        <CheckCircle2 size={20} />
-                      </div>
-                      <div>
-                        <div className="font-tech font-bold text-xs sm:text-sm text-emerald-400 tracking-wider flex items-center gap-2">
-                          <span>YELLOW ZONE FULLY RESTORED</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">5 / 5 SOLVED</span>
-                        </div>
-                        <div className="text-[11px] text-zinc-300 mt-0.5">
-                          Community dataset fragment unlocked. Blue Zone transit corridor available.
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
-                      <a
-                        href="/community_final.csv"
-                        download="community_final.csv"
-                        className="flex-1 sm:flex-none px-3.5 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] flex items-center justify-center gap-1.5 cursor-pointer"
-                        id="map-download-community-final"
-                      >
-                        <Database size={13} />
-                        <span>DOWNLOAD community_final.csv ⤓</span>
-                      </a>
-                      <a
-                        href={getBlueZoneTransitionUrl()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 sm:flex-none px-4 py-2 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center justify-center gap-1.5 cursor-pointer animate-pulse"
-                        id="map-move-to-blue-zone"
-                      >
-                        <span>MOVE TO BLUE ZONE →</span>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-          </>
+            <MainFlagSubmissionStrip onFlagResult={handleFlagResult} />
+          </div>
         ) : (
-          /* Entrance Room Interface (1 Room per Building with 3D FPP Walkthrough & 1 CTF) */
+          /* Entrance room with 3D FPP walkthrough and shared investigation terminal */
           activeBuilding && (
             <BuildingEntrance
               building={activeBuilding}
               onReturnToMap={handleReturnToMap}
-              onSelectCTF={(ctf) => setActiveCTF(ctf)}
+              onSelectCTF={() => setShowInvestigationTerminal(true)}
               onOpenResidentDossier={handleOpenResidentDossier}
-              isAllSolved={totalSolved >= totalCtfs}
             />
           )
         )}
       </div>
 
-      {/* Interactive CTF Terminal Challenge Modal */}
-      {activeCTF && activeBuilding && (
-        <CTFModal
-          ctf={activeCTF}
+      {/* Shared Social Trace Investigation Terminal */}
+      {showInvestigationTerminal && activeBuilding && (
+        <InvestigationTerminal
           building={activeBuilding}
-          onClose={() => setActiveCTF(null)}
-          onSolve={handleSolveCTF}
-          isAllSolved={totalSolved >= totalCtfs}
+          onClose={() => setShowInvestigationTerminal(false)}
         />
       )}
 
