@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { sound } from '../utils/sound';
+import { getBlueZoneTransitionUrl, getResolvedTeamId } from '../utils/supabaseSync';
 
 interface SystemHeaderProps {
   totalSolved: number;
@@ -173,7 +174,7 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
               </a>
 
               <a
-                href="https://yellow-to-blue-slideshow.vercel.app/"
+                href={getBlueZoneTransitionUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer animate-pulse"
@@ -243,6 +244,16 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
           >
             <HelpCircle size={14} />
           </button>
+
+          {/* Central Command Map Link */}
+          <a
+            href={`https://last-dataset.vercel.app/?team=${encodeURIComponent(getResolvedTeamId())}`}
+            target="_top"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-cyan-500/40 bg-cyan-500/10 hover:border-cyan-400 hover:bg-cyan-500/20 text-cyan-300 font-tech font-bold text-xs tracking-wider transition-all"
+            title="Return to Central Command Map Hub"
+          >
+            <span>⬡ MAP</span>
+          </a>
 
           {/* Reset Prototype */}
           <button

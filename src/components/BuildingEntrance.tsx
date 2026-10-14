@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { BuildingData, CTFData } from '../types/protocol';
 import { ThreeRoomFPP } from './ThreeRoomFPP';
 import { sound } from '../utils/sound';
+import { getBlueZoneTransitionUrl } from '../utils/supabaseSync';
 import { 
   ArrowLeft, 
   Terminal, 
@@ -301,7 +302,7 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
                       </a>
                       {isAllSolved && (
                         <a
-                          href="https://yellow-to-blue-slideshow.vercel.app/"
+                          href={getBlueZoneTransitionUrl()}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3.5 py-2 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center gap-1.5 cursor-pointer"

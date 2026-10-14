@@ -16,7 +16,8 @@ import {
   getResolvedTeamId, 
   fetchYellowZoneProgress, 
   recordYellowCtfSolve, 
-  syncYellowZoneToSupabase 
+  syncYellowZoneToSupabase,
+  getBlueZoneTransitionUrl
 } from './utils/supabaseSync';
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
   const [showLogsModal, setShowLogsModal] = useState<boolean>(false);
   const [crtEnabled, setCrtEnabled] = useState<boolean>(true);
   const [showCommunityStatus, setShowCommunityStatus] = useState<boolean>(false);
+  const [lockedPrereq, setLockedPrereq] = useState<string | null>(null);
 
   // Apply Solved Challenges to Buildings and Resident Records
   const applySolvedChallenges = (solvedIds: string[]) => {
@@ -74,6 +76,17 @@ export function App() {
   // Hydrate solved CTFs on mount from Supabase & local cache
   useEffect(() => {
     const teamId = getResolvedTeamId();
+    if (teamId) {
+      fetch(`https://last-dataset.vercel.app/api/zone/status?zoneId=yellow&team=${encodeURIComponent(teamId)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.unlocked === false) {
+            setLockedPrereq(data.prerequisite || 'sanctuary');
+          }
+        })
+        .catch(() => {});
+    }
+
     try {
       const cached = localStorage.getItem(`yellow_solved_${teamId}`);
       if (cached) {
@@ -256,6 +269,25 @@ export function App() {
     }
   };
 
+  if (lockedPrereq) {
+    const teamId = getResolvedTeamId();
+    return (
+      <div className="fixed inset-0 z-50 bg-[#07090e] flex flex-col items-center justify-center p-6 text-center font-mono-code text-red-400">
+        <div className="text-4xl mb-4 font-display">⬡ ACCESS DENIED</div>
+        <div className="text-xl font-bold text-white mb-2 tracking-wider">SECTOR YELLOW IS CURRENTLY LOCKED</div>
+        <p className="text-zinc-400 max-w-md mb-8 text-sm leading-relaxed">
+          Prerequisite sector <span className="text-amber-400 font-bold uppercase">{lockedPrereq}</span> must be cleared by your team before entering Sector Yellow.
+        </p>
+        <a
+          href={`https://last-dataset.vercel.app/?team=${encodeURIComponent(teamId)}`}
+          className="px-6 py-3 rounded bg-amber-500 hover:bg-amber-400 text-black font-bold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+        >
+          RETURN TO CENTRAL COMMAND MAP
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className={`relative w-screen h-screen overflow-hidden flex flex-col bg-[#07090e] text-[#e2e8f0] ${crtEnabled ? 'crt-overlay' : ''}`}>
       {/* Universal In-World MANU Protocol Header */}
@@ -361,7 +393,7 @@ export function App() {
                         <span>DOWNLOAD community_final.csv ⤓</span>
                       </a>
                       <a
-                        href="https://yellow-to-blue-slideshow.vercel.app/"
+                        href={getBlueZoneTransitionUrl()}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 sm:flex-none px-4 py-2 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center justify-center gap-1.5 cursor-pointer animate-pulse"

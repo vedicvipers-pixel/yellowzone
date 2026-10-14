@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CTFData, BuildingData } from '../types/protocol';
 import { sound } from '../utils/sound';
 import { verifyFlag } from '../utils/crypto';
+import { getBlueZoneTransitionUrl } from '../utils/supabaseSync';
 import { 
   X, 
   Terminal, 
@@ -292,7 +293,7 @@ export const CTFModal: React.FC<CTFModalProps> = ({
 
                   {isAllSolved && (
                     <a
-                      href="https://yellow-to-blue-slideshow.vercel.app/"
+                      href={getBlueZoneTransitionUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.5)] cursor-pointer"
@@ -322,7 +323,7 @@ export const CTFModal: React.FC<CTFModalProps> = ({
                     <span>community_final.csv ⤓</span>
                   </a>
                   <a
-                    href="https://yellow-to-blue-slideshow.vercel.app/"
+                    href={getBlueZoneTransitionUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs cursor-pointer"
