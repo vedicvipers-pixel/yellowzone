@@ -4,17 +4,13 @@ import {
   Volume2, 
   VolumeX, 
   Terminal, 
-  Users, 
   RotateCcw, 
   Tv, 
   Activity,
   Layers,
-  HelpCircle,
-  Download,
-  ArrowRight
+  HelpCircle
 } from 'lucide-react';
 import { sound } from '../utils/sound';
-import { getBlueZoneTransitionUrl, getResolvedTeamId } from '../utils/supabaseSync';
 
 interface SystemHeaderProps {
   totalSolved: number;
@@ -27,6 +23,8 @@ interface SystemHeaderProps {
   activeBuildingName?: string;
   onReturnToMap?: () => void;
   onReturnToGate?: () => void;
+  teamId?: string;
+  isSolved?: boolean;
 }
 
 export const SystemHeader: React.FC<SystemHeaderProps> = ({
@@ -39,7 +37,9 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
   crtEnabled,
   activeBuildingName,
   onReturnToMap,
-  onReturnToGate
+  onReturnToGate,
+  teamId,
+  isSolved
 }) => {
   const [isMuted, setIsMuted] = useState(sound.getMuted());
   const [timeString, setTimeString] = useState('');
@@ -65,7 +65,7 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
     if (!muted) sound.playClick();
   };
 
-  const integrityPct = Math.round(18 + (totalSolved / totalCtfs) * 82);
+  const integrityPct = 18;
 
   return (
     <>
@@ -91,6 +91,30 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
             
             <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono-code">
               <span className="text-yellow-400/90 font-medium">COMMUNITY // YELLOW ZONE</span>
+              <span className="text-zinc-600">|</span>
+              {teamId ? (
+                <span className="text-emerald-400/90 font-bold">TEAM: {teamId}</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    const entered = window.prompt("Enter your official Team ID (e.g. TECHTEAM10923):");
+                    if (entered && entered.trim()) {
+                      const clean = entered.trim().toUpperCase();
+                      sessionStorage.setItem("manu_team_id", clean);
+                      localStorage.setItem("manu_team_id", clean);
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("team", clean);
+                      window.location.href = url.toString();
+                    }
+                  }}
+                  className="text-amber-400 font-bold underline hover:text-amber-300 cursor-pointer"
+                  title="Click to set your official Team ID"
+                >
+                  TEAM: OPERATOR [SET TEAM ID]
+                </button>
+              )}
               <span className="text-zinc-600">|</span>
               <span className="text-zinc-500">CYCLE {cycleVal} // {timeString}</span>
               {onReturnToGate && (
@@ -124,20 +148,28 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
 
         {/* Center: System Status & Sector Stability */}
         <div className="hidden lg:flex items-center gap-4 bg-[#141922] px-3 py-1.5 rounded border border-[#2b3545]">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
-            </span>
-            <span className="text-[11px] text-zinc-300 font-mono-code">
-              MEMORY PURGE ACTIVE
-            </span>
-          </div>
+          {isSolved ? (
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 font-mono-code text-[11px]">
+                LEDGER RECOVERED // +200 PTS · BLUE UNLOCKED
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+              </span>
+              <span className="text-[11px] text-zinc-300 font-mono-code">
+                MEMORY PURGE ACTIVE
+              </span>
+            </div>
+          )}
 
           <div className="h-3 w-[1px] bg-zinc-700"></div>
 
           <div className="flex items-center gap-2 font-mono-code text-[11px]">
-            <span className="text-zinc-400">DATA INTEGRITY:</span>
+            <span className="text-zinc-400">DATASET TRACE:</span>
             <div className="w-24 h-2 bg-zinc-800 rounded-sm overflow-hidden border border-zinc-700">
               <div 
                 className="h-full bg-yellow-400 transition-all duration-500"
@@ -150,56 +182,15 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
           <div className="h-3 w-[1px] bg-zinc-700"></div>
 
           <div className="flex items-center gap-1.5 font-mono-code text-[11px]">
-            <span className="text-zinc-400">CTF PROGRESS:</span>
+            <span className="text-zinc-400">TRACE NETWORK:</span>
             <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30">
-              {totalSolved} / {totalCtfs}
+              5 LOCAL ACCOUNTS
             </span>
           </div>
         </div>
 
         {/* Right: Interactive Tactical Utilities */}
         <div className="flex items-center gap-2">
-          {totalSolved >= totalCtfs && (
-            <>
-              <a
-                href="/community_final.csv"
-                download="community_final.csv"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-emerald-500/70 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_12px_rgba(16,185,129,0.3)] cursor-pointer"
-                title="Download community_final.csv fragment"
-                id="header-download-community-final"
-              >
-                <Download size={13} className="text-emerald-400" />
-                <span className="hidden md:inline">community_final.csv</span>
-                <span>⤓</span>
-              </a>
-
-              <a
-                href={getBlueZoneTransitionUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer animate-pulse"
-                title="Proceed to Blue Zone Transition Storyline"
-                id="header-move-to-blue-zone"
-              >
-                <span>MOVE TO BLUE ZONE</span>
-                <ArrowRight size={13} />
-              </a>
-            </>
-          )}
-
-          {/* Recovered Resident Dossiers Button */}
-          <button
-            onClick={() => { sound.playClick(); onOpenResidents(); }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[#354153] bg-[#161c24] hover:border-yellow-500/50 hover:bg-[#1e2530] text-zinc-200 transition-colors cursor-pointer group"
-            title="Inspect Recovered Resident Profiles"
-          >
-            <Users size={14} className="text-yellow-400 group-hover:scale-110 transition-transform" />
-            <span className="font-tech text-xs hidden sm:inline">RESIDENTS</span>
-            <span className="text-[10px] px-1 rounded bg-yellow-400/20 text-yellow-300 font-mono-code">
-              {Math.min(5, Math.ceil((totalSolved / 2)))}/5
-            </span>
-          </button>
-
           {/* Terminal System Logs */}
           <button
             onClick={() => { sound.playClick(); onOpenLogs(); }}
@@ -240,26 +231,16 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
           <button
             onClick={() => { sound.playClick(); setShowHelp(!showHelp); }}
             className="p-1.5 rounded border border-[#354153] bg-[#161c24] hover:border-yellow-500/50 text-zinc-300 transition-colors cursor-pointer"
-            title="Prototype Guide & Controls"
+            title="Investigation guide and controls"
           >
             <HelpCircle size={14} />
           </button>
-
-          {/* Central Command Map Link */}
-          <a
-            href={`https://last-dataset.vercel.app/?team=${encodeURIComponent(getResolvedTeamId())}`}
-            target="_top"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-cyan-500/40 bg-cyan-500/10 hover:border-cyan-400 hover:bg-cyan-500/20 text-cyan-300 font-tech font-bold text-xs tracking-wider transition-all"
-            title="Return to Central Command Map Hub"
-          >
-            <span>⬡ MAP</span>
-          </a>
 
           {/* Reset Prototype */}
           <button
             onClick={() => { sound.playClick(); onReset(); }}
             className="p-1.5 rounded border border-[#354153] bg-[#161c24] hover:border-red-500/50 hover:text-red-400 text-zinc-400 transition-colors cursor-pointer"
-            title="Reset CTFs & Explored State"
+            title="Reset investigation state"
           >
             <RotateCcw size={14} />
           </button>
@@ -285,15 +266,15 @@ export const SystemHeader: React.FC<SystemHeaderProps> = ({
 
             <div className="space-y-3 text-zinc-300">
               <p>
-                <strong className="text-yellow-400">OBJECTIVE:</strong> Sanctuary Zero's identity system is purging citizen memory records. Explore the 5 Community buildings in the Yellow Zone to decrypt 10 CTF terminal points.
+                <strong className="text-yellow-400">OBJECTIVE:</strong> Sanctuary Zero's identity system is purging citizen memory records. Investigate five Yellow Zone buildings to reconstruct a missing dataset from a connected network of fictional social accounts.
               </p>
               
               <div className="bg-[#181f2a] p-3 rounded border border-zinc-700 space-y-2">
                 <div className="text-yellow-300 font-bold">INTERACTIVE CONTROLS:</div>
                 <div>• <span className="text-white">Map Navigation:</span> Hover buildings to inspect status; click <strong>[ENTER]</strong> to access building entrance.</div>
-                <div>• <span className="text-white">3D FPP Room:</span> Walk with <strong>[W][A][S][D]</strong>, look with <strong>Mouse</strong> (click screen to look freely). Walk up to terminals and press <strong>[E]</strong> or click to open CTFs!</div>
+                <div>• <span className="text-white">3D FPP Room:</span> Walk with <strong>[W][A][S][D]</strong>, look with <strong>Mouse</strong> (click screen to look freely). Walk up to the terminal and press <strong>[E]</strong> or click to open the social trace network.</div>
                 <div>• <span className="text-white">2D / 3D Toggle:</span> You can switch between 3D FPP Walkthrough and 2D Tactical Console at any time inside a building.</div>
-                <div>• <span className="text-white">CTFs & Dossiers:</span> Solve CTFs to recover lost resident records and restore sector memory integrity.</div>
+                <div>• <span className="text-white">Accounts & Evidence:</span> Compare posts, highlights, stories, notes, comments, and timestamps. Bookmark useful artifacts in your evidence board.</div>
               </div>
 
               <div className="text-zinc-400 text-[11px]">

@@ -1,7 +1,22 @@
 // Central Hub API integration for Yellow Zone (Server-authoritative, zero exposed DB secrets)
 const CENTRAL_HUB_URL = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_CENTRAL_HUB_URL)
   || "https://last-dataset.vercel.app";
-const SERVICE_TOKEN = "the-last-dataset-2026-production-service-token-manipal";
+const SERVICE_TOKEN = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SERVICE_TOKEN) || "";
+
+export function getResolvedLaunchToken(): string {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const param = urlParams.get("launchToken") || urlParams.get("token");
+    if (param) {
+      sessionStorage.setItem("tld_launch_token", param.trim());
+      localStorage.setItem("tld_launch_token", param.trim());
+      return param.trim();
+    }
+    const stored = (sessionStorage.getItem("tld_launch_token") || localStorage.getItem("tld_launch_token") || "").trim();
+    if (stored) return stored;
+  } catch {}
+  return "";
+}
 
 export function getResolvedTeamId(): string {
   try {
@@ -12,6 +27,21 @@ export function getResolvedTeamId(): string {
       sessionStorage.setItem("manu_team_id", clean);
       localStorage.setItem("manu_team_id", clean);
       return clean;
+    }
+    const lt = urlParams.get("launchToken");
+    if (lt) {
+      try {
+        const payloadBase64 = lt.split('.')[0];
+        const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonStr = atob(normalized);
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && (parsed.teamId || parsed.team)) {
+          const clean = String(parsed.teamId || parsed.team).trim().toUpperCase();
+          sessionStorage.setItem("manu_team_id", clean);
+          localStorage.setItem("manu_team_id", clean);
+          return clean;
+        }
+      } catch (_) {}
     }
     const session = (sessionStorage.getItem("manu_team_id") || sessionStorage.getItem("manu-team-id") || "").trim().toUpperCase();
     if (session && session !== "TECHTEAM10328") return session;
@@ -44,7 +74,9 @@ export function clearYellowZoneLocalSolved(teamId?: string): void {
 
 export function getBlueZoneTransitionUrl(): string {
   const teamId = getResolvedTeamId();
-  return `https://yellow-to-blue-slideshow.vercel.app/?team=${encodeURIComponent(teamId)}`;
+  const lt = getResolvedLaunchToken();
+  const ltQuery = lt ? `&launchToken=${encodeURIComponent(lt)}` : '';
+  return `https://yellow-to-blue-slideshow.vercel.app/?team=${encodeURIComponent(teamId)}${ltQuery}`;
 }
 
 export async function fetchYellowZoneProgress(teamId?: string): Promise<{ isCompleted: boolean; solvedChallenges: string[]; status: string }> {
@@ -89,26 +121,31 @@ export async function fetchYellowZoneProgress(teamId?: string): Promise<{ isComp
 
 export async function recordYellowCtfSolve(ctfId: string = "yellow-01", teamId?: string): Promise<{ success: boolean; score?: number; error?: string }> {
   const resolved = teamId || getResolvedTeamId();
+  const launchToken = getResolvedLaunchToken();
 
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    };
+    if (launchToken) {
+      headers["Authorization"] = `Bearer ${launchToken}`;
+      headers["x-launch-token"] = launchToken;
+    } else {
+      headers["Authorization"] = `Bearer ${SERVICE_TOKEN || "the-last-dataset-2026-production-service-token-manipal"}`;
+    }
+
     // 1. Authoritative Server-side RPC integration / Central Hub completion
     const res = await fetch(`${CENTRAL_HUB_URL}/api/integrations/zone-ctf-complete`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${SERVICE_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ teamId: resolved, ctfId: "yellow-01", zoneId: "yellow" })
+      headers,
+      body: JSON.stringify({ teamId: resolved, ctfId: "yellow-01", zoneId: "yellow", launchToken: launchToken || undefined })
     });
 
     // 2. Also ensure yellow zone completion endpoint is notified
     const res2 = await fetch(`${CENTRAL_HUB_URL}/api/yellow/complete`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${SERVICE_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ teamId: resolved })
+      headers,
+      body: JSON.stringify({ teamId: resolved, launchToken: launchToken || undefined })
     }).catch(() => null);
 
     const isOk = res.ok || (res2 && res2.ok);

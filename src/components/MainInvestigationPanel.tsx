@@ -170,7 +170,27 @@ export const MainFlagSubmissionStrip: React.FC<MainFlagSubmissionStripProps> = (
   const submitFlag = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (flagInput.trim().toUpperCase() === CANONICAL_FLAG) {
-      const teamId = getResolvedTeamId();
+      let teamId = getResolvedTeamId();
+      if (!teamId) {
+        const entered = window.prompt("OPERATOR SESSION DETECTED:\nPlease enter your official Team ID (e.g. TECHTEAM10923) to attribute +200 points and unlock Blue Zone:");
+        if (entered && entered.trim()) {
+          const clean = entered.trim().toUpperCase();
+          sessionStorage.setItem("manu_team_id", clean);
+          localStorage.setItem("manu_team_id", clean);
+          teamId = clean;
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set("team", clean);
+            window.history.replaceState({}, '', url.toString());
+          } catch {}
+          window.dispatchEvent(new Event('manu-ledger-state-change'));
+        } else {
+          setFlagMessage('TEAM ID REQUIRED: Enter your official Team ID (e.g. TECHTEAM...) to record your score.');
+          setSyncStatus('SYNC PAUSED // NO TEAM ID SPECIFIED');
+          onFlagResult('wrong');
+          return;
+        }
+      }
       setSyncStatus('SYNCING TO CENTRAL LEDGER & VERIFYING +200 PTS...');
       const syncRes = await syncYellowZoneToSupabase(teamId);
       if (syncRes.success) {
