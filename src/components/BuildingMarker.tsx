@@ -18,6 +18,7 @@ interface BuildingMarkerProps {
   onHover: (id: string | null) => void;
   onSelect: (building: BuildingData) => void;
   onEnter: (building: BuildingData) => void;
+  routeOrder: number;
 }
 
 export const BuildingMarker: React.FC<BuildingMarkerProps> = ({
@@ -26,7 +27,8 @@ export const BuildingMarker: React.FC<BuildingMarkerProps> = ({
   isSelected,
   onHover,
   onSelect,
-  onEnter
+  onEnter,
+  routeOrder
 }) => {
   const visibleCtfs = building.ctfs.slice(0, 1);
   const solvedCount = visibleCtfs.filter(c => c.completed).length;
@@ -100,6 +102,9 @@ export const BuildingMarker: React.FC<BuildingMarkerProps> = ({
         onSelect(building);
       }}
     >
+      <div className="absolute -top-5 left-1/2 z-40 -translate-x-1/2 pointer-events-none">
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-md border border-yellow-300 bg-yellow-400 px-1.5 text-[10px] font-black text-black shadow-[0_0_16px_rgba(250,204,21,0.35)]">{String(routeOrder).padStart(2, '0')}</span>
+      </div>
       {/* ========================================================= */}
       {/* THE SMALL NODE (Scales up subtly on hover, not overly large) */}
       {/* ========================================================= */}
@@ -143,7 +148,7 @@ export const BuildingMarker: React.FC<BuildingMarkerProps> = ({
           {building.id === 'society' ? 'SOCIETY' : building.id === 'sports' ? 'SPORTS COMPLEX' : building.name}
         </div>
         {isHovered && (
-          <div className="text-[7px] text-zinc-500 mt-0.5 font-bold">{solvedCount}/1 CTF</div>
+          <div className="text-[7px] text-zinc-500 mt-0.5 font-bold">TRACE NODE ACTIVE</div>
         )}
       </div>
 
@@ -170,7 +175,7 @@ export const BuildingMarker: React.FC<BuildingMarkerProps> = ({
             {building.shortDescription}
           </p>
 
-          {/* Status & CTF Count */}
+          {/* Building status */}
           <div className="flex items-center justify-between text-[9px] mb-2 font-mono-code">
             <span className="text-zinc-500">STATUS:</span>
             <span className="text-yellow-300 font-semibold">{building.status}</span>

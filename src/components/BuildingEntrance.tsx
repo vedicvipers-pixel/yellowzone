@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { BuildingData, CTFData } from '../types/protocol';
 import { ThreeRoomFPP } from './ThreeRoomFPP';
 import { sound } from '../utils/sound';
-import { getBlueZoneTransitionUrl } from '../utils/supabaseSync';
 import { 
   ArrowLeft, 
   Terminal, 
@@ -22,15 +21,13 @@ interface BuildingEntranceProps {
   onReturnToMap: () => void;
   onSelectCTF: (ctf: CTFData) => void;
   onOpenResidentDossier?: (residentId: string) => void;
-  isAllSolved?: boolean;
 }
 
 export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
   building,
   onReturnToMap,
   onSelectCTF,
-  onOpenResidentDossier,
-  isAllSolved
+  onOpenResidentDossier
 }) => {
   // Allow toggling between 3D FPP Walkthrough and 2D Tactical View
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
@@ -45,7 +42,7 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
   }, [viewMode, building.id]);
   const activeCtf = building.ctfs[0];
   const visibleCtfs = building.ctfs.slice(0, 1);
-  const solvedCount = activeCtf?.completed ? 1 : 0;
+  const solvedCount = 0;
   const handleOpenDataset = useCallback(() => {
     // The room dataset is sealed until this building's active (first) CTF is solved.
     if (!building.ctfs[0]?.completed) return;
@@ -104,27 +101,27 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
     hospital: [
       { label: 'WARD ATMOSPHERE', value: '98.4 kPa • HEPA FILTER ACTIVE' },
       { label: 'CLINICAL LOCKOUT', value: 'WARD BUS UNSTABLE' },
-      { label: 'RECOVERED DATASET', value: 'MEDICAL RECORDS' }
+      { label: 'SOCIAL TRACE NODE', value: 'STAFF ACCOUNT MIRRORS' }
     ],
     school: [
       { label: 'SCHEDULE INTEGRITY', value: '3 PERIODS • 1 HIDDEN ROOM' },
       { label: 'ACADEMIC LOCKOUT', value: 'CURRICULUM CACHE DEGRADED' },
-      { label: 'RECOVERED DATASET', value: 'ACADEMY REGISTER' }
+      { label: 'SOCIAL TRACE NODE', value: 'ARCHIVED ACCOUNT MIRRORS' }
     ],
     museum: [
       { label: 'VAULT CLIMATE', value: 'N2 SEAL PRESSURE LOW' },
       { label: 'ARCHIVE ACCESS', value: 'ORIGINAL NEGATIVE SEALED' },
-      { label: 'RECOVERED DATASET', value: 'GALLERY 09 ARCHIVE' }
+      { label: 'SOCIAL TRACE NODE', value: 'IMAGE & POST ARCHIVE' }
     ],
     sports: [
       { label: 'ARENA RELAY', value: 'GHOST FRAMES DETECTED' },
       { label: 'ROUTE CONTROL', value: 'WEST GATE WINDOW UNSTABLE' },
-      { label: 'RECOVERED DATASET', value: 'SCOREBOARD TELEMETRY' }
+      { label: 'SOCIAL TRACE NODE', value: 'STORY & TIMELINE MIRRORS' }
     ],
     society: [
       { label: 'RESIDENTIAL CORE', value: 'DOOR CACHE PARTIAL' },
       { label: 'ACCESS CONTROL', value: 'UNIT 404 ID MISSING' },
-      { label: 'RECOVERED DATASET', value: 'RESIDENT LEDGER' }
+      { label: 'SOCIAL TRACE NODE', value: 'COMMUNITY ACCOUNT MIRRORS' }
     ]
   }[building.id];
 
@@ -175,13 +172,13 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
           </div>
         </div>
 
-        {/* Right: Switch Mode & CTF Summary */}
+        {/* Right: Switch Mode & Investigation Status */}
         <div className="flex items-center gap-3">
-          {/* CTF Status in room */}
+          {/* Social trace status in room */}
           <div className="hidden sm:flex items-center gap-2 bg-[#121822] px-2.5 py-1 rounded border border-[#253245]">
-            <span className="text-zinc-400 text-[11px]">ROOM CTF:</span>
-            <span className={`font-bold ${solvedCount === 1 ? 'text-emerald-400' : 'text-yellow-400'}`}>
-              {solvedCount}/1 RECOVERED
+            <span className="text-zinc-400 text-[11px]">TRACE NETWORK:</span>
+            <span className={`font-bold ${solvedCount > 0 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+              1 LOCAL ACCOUNT
             </span>
           </div>
 
@@ -266,64 +263,24 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
                   <div className="bg-[#0b0e14] p-3 rounded border border-zinc-800">
                     <div className="text-zinc-500 text-[10px] uppercase font-tech">{telemetry[2].label}</div>
                     <button
-                      onClick={handleOpenDataset}
-                      disabled={!activeCtf?.completed}
-                      aria-disabled={!activeCtf?.completed}
-                      title={activeCtf?.completed ? 'Open recovered building records' : 'Solve this building CTF to unlock records'}
-                      className={`font-bold mt-1 text-left transition-colors ${activeCtf?.completed ? 'text-yellow-400 hover:underline cursor-pointer' : 'text-zinc-600 cursor-not-allowed'}`}
+                      onClick={() => activeCtf && handleSelectActiveCTF(activeCtf)}
+                      title={'Open the shared social trace network'}
+                      className="font-bold mt-1 text-left text-yellow-400 hover:underline cursor-pointer transition-colors"
                     >
-                      {activeCtf?.completed ? `Inspect ${telemetry[2].value} →` : 'Records Sealed — Solve CTF First'}
+                      Open {telemetry[2].value} →
                     </button>
                   </div>
                 </div>
-
-                {/* Society completion fragment and Blue Zone transition banner */}
-                {building.id === 'society' && activeCtf?.completed && (
-                  <div className="mt-4 p-4 rounded-lg border-2 border-emerald-500/70 bg-emerald-950/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[0_0_25px_rgba(16,185,129,0.25)]">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="font-tech font-bold text-xs text-emerald-300 tracking-wider">
-                          COMMUNITY DATASET READY // community_final.csv
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-300 font-mono-code mt-0.5">
-                        Society identity archive recovered. 20-column community fragment unlocked for download.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      <a
-                        href="/community_final.csv"
-                        download="community_final.csv"
-                        className="px-3.5 py-2 rounded bg-emerald-400 hover:bg-emerald-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(52,211,153,0.4)] flex items-center gap-1.5 cursor-pointer"
-                        id="entrance-download-community-final"
-                      >
-                        <span>DOWNLOAD community_final.csv ⤓</span>
-                      </a>
-                      {isAllSolved && (
-                        <a
-                          href={getBlueZoneTransitionUrl()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3.5 py-2 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-tech font-bold text-xs tracking-wider transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center gap-1.5 cursor-pointer"
-                          id="entrance-move-to-blue-zone"
-                        >
-                          <span>MOVE TO BLUE ZONE →</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* The Two Clearly Identifiable CTF Interaction Points */}
+              {/* Shared social investigation terminal */}
               <div>
                 <div className="flex items-center justify-between mb-3 font-mono-code text-xs">
                   <span className="text-yellow-400 font-tech font-bold tracking-wider text-sm flex items-center gap-2">
                     <Terminal size={15} />
-                    INTERACTIVE ROOM TERMINALS // CTF ACCESS POINTS
+                    INVESTIGATION TERMINAL // SOCIAL TRACE ACCESS
                   </span>
-                  <span className="text-zinc-500">1 TERMINAL DEPLOYED</span>
+                  <span className="text-zinc-500">1 LOCAL ACCOUNT MIRRORED</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -341,10 +298,10 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
                         <div className="flex items-center justify-between mb-3 border-b border-zinc-800/80 pb-2">
                           <div className="flex items-center gap-2">
                             <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-mono-code font-bold text-[11px] border border-yellow-500/30">
-                              CTF // {ctf.slot}
+                              TRACE NODE // {ctf.slot}
                             </span>
                             <span className="font-tech text-white font-bold text-sm tracking-wider">
-                              {ctf.label}
+                              SHARED ACCOUNT MIRROR
                             </span>
                           </div>
 
@@ -353,26 +310,26 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
                               ? 'text-emerald-400 bg-emerald-950/60 border border-emerald-500/40'
                               : 'text-amber-400 bg-amber-950/40 border border-amber-500/30'
                           }`}>
-                            {ctf.completed ? 'RECOVERED' : 'LOCKED'}
+                            ONLINE
                           </span>
                         </div>
 
                         {/* Subtitle & Type */}
                         <div className="text-xs text-yellow-400 font-tech font-semibold mb-1">
-                          {ctf.subtitle}
+                          POSTS // HIGHLIGHTS // STORIES // NOTES
                         </div>
                         <div className="text-[10px] text-zinc-500 font-mono-code mb-3 uppercase">
-                          TYPE: {ctf.type}
+                          NETWORK: YELLOW ZONE // MIRRORED SOCIAL FEED
                         </div>
 
-                        {/* Challenge Description */}
+                        {/* Investigation terminal description */}
                         <p className="text-zinc-300 text-xs font-mono-code leading-relaxed mb-3">
-                          {ctf.description}
+                          Open the shared account network to inspect posts, highlights, stories, notes, comments, and cross-building evidence. Save artifacts to your evidence board as you reconstruct the missing dataset.
                         </p>
 
                       </div>
 
-                      {/* CTA to open CTF puzzle modal */}
+                      {/* Opens the shared social trace interface */}
                       <button
                         onClick={() => {
                           sound.playClick();
@@ -384,17 +341,7 @@ export const BuildingEntrance: React.FC<BuildingEntranceProps> = ({
                             : 'bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_0_15px_rgba(250,204,21,0.35)]'
                         }`}
                       >
-                        {ctf.completed ? (
-                          <>
-                            <CheckCircle2 size={14} />
-                            <span>INSPECT RECOVERED LOGS</span>
-                          </>
-                        ) : (
-                          <>
-                            <Terminal size={14} />
-                            <span>ACCESS TERMINAL INTERFACE</span>
-                          </>
-                        )}
+                        <><Terminal size={14} /><span>OPEN SOCIAL TRACE NETWORK</span></>
                       </button>
                     </div>
                   ))}

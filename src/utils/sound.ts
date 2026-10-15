@@ -143,7 +143,7 @@ class SoundManager {
     osc.stop(this.ctx.currentTime + 0.13);
   }
 
-  // CTF Decryption Success chime (satisfying yellow chord)
+  // Recovery success chime (satisfying yellow chord)
   public playSuccess() {
     if (this.isMuted) return;
     this.initCtx();

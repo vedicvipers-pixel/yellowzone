@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BuildingData } from '../types/protocol';
 import { BuildingMarker } from './BuildingMarker';
 import { sound } from '../utils/sound';
-import { Compass, Eye, Wifi, ZoomIn, ZoomOut, Layers3, Map, LocateFixed } from 'lucide-react';
+import { Compass, Eye, Wifi, ZoomIn, ZoomOut, Layers3, Map, LocateFixed, ArrowRight } from 'lucide-react';
 
 interface CommunityMapProps {
   buildings: BuildingData[];
@@ -23,6 +23,8 @@ export const CommunityMap: React.FC<CommunityMapProps> = ({
   const [showFog, setShowFog] = useState(false);
   const [showCameras, setShowCameras] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  const routeOrder = ['hospital', 'school', 'museum', 'sports', 'society'];
 
   const handleZoom = (delta: number) => {
     sound.playClick();
@@ -159,6 +161,7 @@ export const CommunityMap: React.FC<CommunityMapProps> = ({
               onHover={setHoveredBuildingId}
               onSelect={onSelectBuilding}
               onEnter={onEnterBuilding}
+              routeOrder={routeOrder.indexOf(building.id) + 1}
             />
           ))}
         </div>
@@ -167,8 +170,8 @@ export const CommunityMap: React.FC<CommunityMapProps> = ({
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 pointer-events-none font-mono-code">
         <div className="map-minimal-legend">
           <span><LocateFixed size={11} className="text-yellow-400" /> ENTRY</span>
-          <span>5 BUILDINGS</span>
-          <span>INTERCONNECTED MAZE</span>
+          <span className="flex items-center gap-1 text-yellow-200"><b>ROUTE</b> 01 <ArrowRight size={10}/> 02 <ArrowRight size={10}/> 03 <ArrowRight size={10}/> 04 <ArrowRight size={10}/> 05</span>
+          <span>HOSPITAL → SCHOOL → MUSEUM → SPORTS → SOCIETY</span>
           <span className="text-cyan-300/80">Y-03</span>
         </div>
       </div>

@@ -108,13 +108,13 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
         ctx.fillStyle = `#${theme.primary.toString(16).padStart(6, '0')}`; ctx.fillRect(0, 0, 640, 8);
         ctx.strokeStyle = `#${theme.primary.toString(16).padStart(6, '0')}`; ctx.lineWidth = 2; ctx.strokeRect(14, 14, 612, 332);
         ctx.fillStyle = '#e5edf5'; ctx.font = 'bold 29px monospace';
-        ctx.fillText(kind === 'ctf' ? 'MANU // CHALLENGE NODE' : kind === 'dataset' ? 'MANU // EVIDENCE ARCHIVE' : 'YELLOW ZONE // ARENA FEED', 30, 56);
+        ctx.fillText(kind === 'ctf' ? 'MANU // SOCIAL TRACE NODE' : kind === 'dataset' ? 'MANU // SOCIAL TRACE ARCHIVE' : 'YELLOW ZONE // ARENA FEED', 30, 56);
         ctx.fillStyle = `#${theme.accent.toString(16).padStart(6, '0')}`; ctx.font = 'bold 20px monospace';
         if (kind === 'ctf') {
-          ctx.fillText(visibleCTF?.label.replace(/[\[\]]/g, '') ?? 'CTF TERMINAL', 30, 112);
+          ctx.fillText('ACCOUNT MIRROR NETWORK', 30, 112);
           ctx.fillStyle = visibleCTF?.completed ? '#34d399' : '#fbbf24'; ctx.font = 'bold 24px monospace';
-          ctx.fillText(visibleCTF?.completed ? 'STATUS: SECURED' : 'STATUS: READY FOR ACCESS', 30, 162);
-          ctx.fillStyle = '#91a5b8'; ctx.font = '17px monospace'; ctx.fillText('INTERACT TO OPEN THE ACTIVE CHALLENGE', 30, 214);
+          ctx.fillText(visibleCTF?.completed ? 'STATUS: ARCHIVE ONLINE' : 'STATUS: MIRROR READY', 30, 162);
+          ctx.fillStyle = '#91a5b8'; ctx.font = '17px monospace'; ctx.fillText('INTERACT TO INSPECT SOCIAL EVIDENCE', 30, 214);
           ctx.fillText(`NODE ${building.code} // ${visibleCTF?.slot ?? '01'}`, 30, 252);
         } else if (kind === 'dataset') {
           ctx.fillText(`${building.name} // DATASET`, 30, 112);
@@ -128,7 +128,7 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
             ctx.fillStyle = '#34d399'; ctx.fillRect(30, 310, 400 + Math.sin(time * 2) * 20, 5);
           } else {
             ctx.fillText('ENCRYPTED RECORDS DETECTED', 30, 210);
-            ctx.fillText('REQUIREMENT: SOLVE THIS ROOM CTF', 30, 250);
+            ctx.fillText('REVIEW POSTS // STORIES // NOTES', 30, 250);
             ctx.fillStyle = '#fbbf24'; ctx.fillRect(30, 290, 390, 5);
             ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 17px monospace'; ctx.fillText('DATA SEALED // NO ACCESS', 30, 322);
           }
@@ -226,12 +226,11 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
     };
     makeWallGraphic('left'); makeWallGraphic('right');
 
-    // One primary interactive terminal. Before completion it presents the CTF; after
-    // completion the same physical display transforms into the unlocked evidence dataset.
+    // One primary interactive terminal opens the shared social account mirror.
     const ctfScreen = makeScreenTexture('ctf');
     const dataScreen = makeScreenTexture('dataset');
     const scoreScreen = makeScreenTexture('scoreboard');
-    const datasetUnlocked = Boolean(visibleCTF?.completed);
+    const datasetUnlocked = false;
     const activeScreenTexture = datasetUnlocked ? dataScreen.tex : ctfScreen.tex;
     const terminalAccent = datasetUnlocked ? theme.primary : theme.accent;
     const stationX = 0;
@@ -254,7 +253,7 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
     const labelCanvas = document.createElement('canvas'); labelCanvas.width = 640; labelCanvas.height = 96;
     const lctx = labelCanvas.getContext('2d')!; lctx.fillStyle = '#071019'; lctx.fillRect(0, 0, 640, 96);
     lctx.fillStyle = `#${theme.primary.toString(16).padStart(6, '0')}`; lctx.font = 'bold 30px monospace'; lctx.textAlign = 'center';
-    lctx.fillText(datasetUnlocked ? '02 // EVIDENCE DATASET' : '01 // CTF CHALLENGE TERMINAL', 320, 58);
+    lctx.fillText(datasetUnlocked ? 'SOCIAL TRACE ARCHIVE' : 'SOCIAL TRACE TERMINAL', 320, 58);
     const labelTex = new THREE.CanvasTexture(labelCanvas); labelTex.colorSpace = THREE.SRGBColorSpace; textures.push(labelTex);
     const label = new THREE.Mesh(new THREE.PlaneGeometry(3.15, 0.47), addMaterial(new THREE.MeshBasicMaterial({ map: labelTex, transparent: true })));
     label.position.set(stationX, 3.38, -4.30); scene.add(label);
@@ -262,7 +261,7 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
     // A small physical access reader reinforces the state change without adding another screen.
     box(0.48, 0.26, 0.12, 0x101722, 2.15, 0.83, -3.82, { metalness: 0.82, roughness: 0.3 });
     box(0.29, 0.045, 0.035, datasetUnlocked ? 0x34d399 : 0xfbbf24, 2.15, 0.88, -3.745, { emissive: datasetUnlocked ? 0x34d399 : 0xfbbf24, emissiveIntensity: 1.1 });
-    interactive.push({ type: datasetUnlocked ? 'dataset' : 'ctf', pos: stationPos, ctf: visibleCTF });
+    interactive.push({ type: 'ctf', pos: stationPos, ctf: visibleCTF });
     // Keep the player in front of the terminal rather than walking through the console mesh.
     addBlocker(-1.92, 1.92, -4.78, -4.26);
     pointLight(terminalAccent, 5.5, 4.8, stationX, 2.25, -3.45);
@@ -333,7 +332,7 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
       addBlocker(-3.98, -3.12, -0.12, 0.42);
       box(2.0, 0.12, 0.82, 0x64748b, -2.1, 0.92, 0.78, { metalness: 0.6 });
       // Mount the schedule board on the left wall, keeping the sightline and walk lane
-      // to the central CTF terminal clear. The thin X dimension makes it wall-mounted.
+      // to the central investigation terminal clear. The thin X dimension makes it wall-mounted.
       box(0.08, 0.68, 1.98, 0x0b2533, -4.78, 2.2, 1.2, { emissive: theme.primary, emissiveIntensity: 0.12 });
       box(0.035, 0.42, 1.72, 0x071019, -4.70, 2.2, 1.2, { emissive: theme.primary, emissiveIntensity: 0.25 });
       for (let i = 0; i < 4; i++) box(0.38, 0.08, 0.28, [0x38bdf8, 0xfbbf24, 0x22c55e, 0xc084fc][i], -2.72 + i * 0.4, 1.04, 0.72, { roughness: 0.72 });
@@ -470,9 +469,9 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
         if (dist < nearestDist) {
           nearestDist = dist;
           nearest = target.type === 'ctf'
-            ? { type: 'ctf', target: target.ctf, message: target.ctf?.completed ? 'OPEN CTF // REVIEW SECURED CHALLENGE' : 'OPEN CTF // START CHALLENGE' }
+            ? { type: 'ctf', target: target.ctf, message: 'OPEN SOCIAL TRACE NETWORK' }
             : target.type === 'dataset'
-              ? { type: 'dataset', message: visibleCTF?.completed ? 'OPEN DATASET // INSPECT BUILDING RECORDS' : 'DATASET LOCKED // SOLVE THE CTF FIRST' }
+              ? { type: 'dataset', message: 'OPEN SOCIAL TRACE NETWORK' }
               : { type: 'exit', message: 'EXIT TO COMMUNITY MAP' };
         }
       }
@@ -516,7 +515,7 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
         {sprinting && <div className="mt-2 text-[10px] text-amber-300 flex items-center gap-1"><Zap size={10} className="inline"/> SPRINT ACTIVE</div>}
       </div>
       <div className="absolute top-4 right-4 z-20 flex gap-2 pointer-events-none">
-        <div className="bg-[#081019]/90 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-slate-300 flex items-center gap-2">{visibleCTF?.completed ? <Database size={14} style={{ color: `#${theme.primary.toString(16).padStart(6, '0')}` }}/> : <FileSearch size={14} style={{ color: `#${theme.accent.toString(16).padStart(6, '0')}` }}/>} {visibleCTF?.completed ? 'SINGLE SCREEN // DATASET' : 'SINGLE SCREEN // CTF'}</div>
+        <div className="bg-[#081019]/90 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-slate-300 flex items-center gap-2">{visibleCTF?.completed ? <Database size={14} style={{ color: `#${theme.primary.toString(16).padStart(6, '0')}` }}/> : <FileSearch size={14} style={{ color: `#${theme.accent.toString(16).padStart(6, '0')}` }}/>} SOCIAL TRACE TERMINAL // ACCOUNT MIRROR</div>
       </div>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div className={`w-5 h-5 rounded-full border ${activePrompt ? 'border-amber-300 scale-125' : 'border-white/40'} flex items-center justify-center`}><div className={`w-1 h-1 rounded-full ${activePrompt ? 'bg-amber-300' : 'bg-white/60'}`} /></div>
@@ -535,7 +534,7 @@ export const ThreeRoomFPP: React.FC<ThreeRoomFPPProps> = ({ building, onInteract
       )}
       <div className="absolute bottom-3 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono-code text-slate-300 bg-[#081019]/90 px-4 py-2 rounded-lg border border-white/10 backdrop-blur-md">
         <div>WASD MOVE · MOUSE LOOK · SHIFT SPRINT · E INTERACT</div>
-        <div className="flex items-center gap-2">{visibleCTF?.completed ? <CheckCircle2 size={13} className="text-emerald-400"/> : <Lock size={13} className="text-amber-300"/>}<span>{visibleCTF?.completed ? 'CTF SECURED' : 'CTF READY'}</span><span className="text-slate-500">·</span><span>COMPACT ROOM 01/01</span></div>
+        <div className="flex items-center gap-2"><FileSearch size={13} className="text-amber-300"/><span>TRACE NETWORK ONLINE</span><span className="text-slate-500">·</span><span>COMPACT ROOM 01/01</span></div>
       </div>
     </div>
   );
